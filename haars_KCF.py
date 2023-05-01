@@ -1,7 +1,17 @@
 import cv2
+import os
 
+# Get the absolute path of the current Python script file
+script_path = os.path.abspath(__file__)
+# Get the directory path of the current Python script file
+dir_path = os.path.dirname(script_path)
+
+# Print the current path and directory path
+print('Current path:', script_path)
+path_to_cascade = f'{dir_path}\haarcascade_frontalface_alt_tree.xml'
+print('Directory path:', path_to_cascade)
 # Load the Haar Cascade Classifier for tongue detection
-cascade = cv2.CascadeClassifier('.\haarcascade_frontalface_alt_tree.xml')
+cascade = cv2.CascadeClassifier(path_to_cascade)
 #cascade = cv2.CascadeClassifier('.\haarcascade_frontalface_alt.xml')
 #cascade = cv2.CascadeClassifier('.\haarcascade_frontalface_alt2.xml')
 #cascade = cv2.CascadeClassifier('.\haarcascade_frontalface_default.xml')
@@ -14,7 +24,7 @@ cap = cv2.VideoCapture(0)
 
 # Wait for the camera to warm up
 cv2.waitKey(1000)
-
+print(cascade)
 # Start the video loop
 while True:
     # Capture a frame from the video stream
