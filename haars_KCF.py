@@ -38,13 +38,17 @@ while True:
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     
     # Detect faces in the grayscale image
-    faces = face_cascade.detectMultiScale(gray, 1.3, 5)
+    #faces =cascade.detectMultiScale(gray, 1.3, 5)
+
+    # Detect tongues in the grayscale image
+    tongues = cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
     
     # If a face is detected, start tracking the tongue
-    if len(faces) > 0:
+    if len(tongues) > 0:
         # Get the first face detected
-        (x, y, w, h) = faces[0]
-        
+        #(x, y, w, h) = tongues[0]
+        x, y, w, h = sorted(tongues, key=lambda x: x[2] * x[3])[-1]
+
         # If tracking hasn't started yet, initialize the tracker with the face bounding box
         if not tracking_started:
             bbox = (x, y, w, h)
