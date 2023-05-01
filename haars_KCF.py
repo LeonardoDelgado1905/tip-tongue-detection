@@ -16,48 +16,70 @@ cascade = cv2.CascadeClassifier(path_to_cascade)
 #cascade = cv2.CascadeClassifier('.\haarcascade_frontalface_alt2.xml')
 #cascade = cv2.CascadeClassifier('.\haarcascade_frontalface_default.xml')
 
-# Initialize the KCF tracker
+# Create a KCF tracker object
 tracker = cv2.TrackerKCF_create()
 
-# Initialize the video capture device
+# Set up the video capture device (use 0 for default camera)
 cap = cv2.VideoCapture(0)
 
-# Wait for the camera to warm up
-cv2.waitKey(1000)
-print(cascade)
-# Start the video loop
+# Initialize the tracking variables
+bbox = None
+tracking_started = False
+
 while True:
-    # Capture a frame from the video stream
+    # Read a new frame from the video capture device
     ret, frame = cap.read()
-
-    # Convert the frame to grayscale
+    
+    # If there was an error reading the frame, break out of the loop
+    if not ret:
+        break
+    
+    # Convert the frame to grayscale for face detection
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-
-    # Detect tongues in the grayscale image
-    tongues = cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
-
-    # If a tongue is detected, start tracking it with KCF
-    if len(tongues) > 0:
-        # Select the largest tongue as the object of interest
-        x, y, w, h = sorted(tongues, key=lambda x: x[2] * x[3])[-1]
-
-        # Initialize the KCF tracker with the current frame and bounding box
-        tracker.init(frame, (x, y, w, h))
-
-    # If a tongue is being tracked, update the tracker and draw the bounding box
-    if tracker:
-        success, bbox = tracker.update(frame)
-        if success:
-            x, y, w, h = [int(i) for i in bbox]
-            cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
-
-    # Display the frame with the bounding box
-    cv2.imshow('Tongue Detection', frame)
-
-    # Exit the program if the 'q' key is pressed
-    if cv2.waitKey(1) & 0xFF == ord('q'):
+    
+    # Detect faces in the grayscale image
+    faces = face_cascade.detectMultiScale(gray, 1.3, 5)
+    
+    # If a face is detected, start tracking the tongue
+    if len(faces) > 0:
+        # Get the first face detected
+        (x, y, w, h) = faces[0]
+        
+        # If tracking hasn't started yet, initialize the tracker with the face bounding box
+        if not tracking_started:
+            bbox = (x, y, w, h)
+            ok = tracker.init(frame, bbox)
+            tracking_started = True
+        # If tracking has already started, update the tracker with the current frame and bounding box
+        else:
+            # Ensure that the tongue is inside the face rectangle before updating the tracker
+            if bbox is not None and x <= bbox[0] <= x+w and y <= bbox[1] <= y+h:
+                # Convert the bounding box to the format expected by the KCF tracker
+                bbox = (bbox[0], bbox[1], bbox[2], bbox[3])
+                
+                # Update the tracker with the current frame and bounding box
+                ok, bbox = tracker.update(frame, bbox)
+                
+                # If the tracking is successful, draw a rectangle around the tracked object
+                if ok:
+                    cv2.rectangle(frame, (int(bbox[0]), int(bbox[1])), (int(bbox[0]+bbox[2]), int(bbox[1]+bbox[3])), (0, 255, 255), 2)
+                else:
+                    # If the tracking fails, reset the tracking variables
+                    bbox = None
+                    tracking_started = False
+            else:
+                # If the tongue is not inside the face rectangle, reset the tracking variables
+                bbox = None
+                tracking_started = False
+    
+    # Display the resulting image
+    cv2.imshow('Tongue Tracker', frame)
+    
+    # Wait for a key press and check if the user wants to quit
+    key = cv2.waitKey(1) & 0xFF
+    if key == ord('q'):
         break
 
-# Release the video capture device and close all windows
+# Clean up
 cap.release()
 cv2.destroyAllWindows()
